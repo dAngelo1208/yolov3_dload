@@ -55,7 +55,7 @@ def read_param_from_file(yolo_ckpt, model):
 
 def detect(image_path):
     input_size = 416
-    num_class = 80
+    num_class = 3
     iou_threshold = 0.45  # nms中用于抑制与最佳框(score最高)重合度高的预测框 防止一obj多框
     score_threshold = 0.3  # 在对预测框处理完成后
     # rectangle_colors = (255, 0, 0)
@@ -115,12 +115,20 @@ def read_param_from_master(pt_path, model):
         if '_head' in k and '.conv2' in k:
             idx_jump += 1
             # 更新Head层参数
-            dict_update.update({k: vs_pt[-(6 - idx_jump + 1)]})
+            # dict_update.update({k: vs_pt[-idx_jump - 1]})
             continue
 
         current_idx = ks.index(k)
         k_pt, v_pt = ks_pt[int(current_idx - idx_jump)], vs_pt[int(current_idx - idx_jump)]
         dict_update.update({k: v_pt})
+
+    # 更新Yolo Head层参数
+    dict_update['out_head1.conv2.conv.weight'] = vs_pt[-2]
+    dict_update['out_head1.conv2.conv.bias'] = vs_pt[-1]
+    dict_update['out_head2.conv2.conv.weight'] = vs_pt[-4]
+    dict_update['out_head2.conv2.conv.bias'] = vs_pt[-3]
+    dict_update['out_head3.conv2.conv.weight'] = vs_pt[-6]
+    dict_update['out_head3.conv2.conv.bias'] = vs_pt[-5]
 
     model_dict.update(dict_update)
     model.load_state_dict(model_dict)
@@ -128,8 +136,8 @@ def read_param_from_master(pt_path, model):
 
 
 if __name__ == "__main__":
-    # detect('./IMAGES/dogs-and-cats.jpg')
+    detect('./IMAGES/ocean.jpg')
 
-    model = YOLOV3(3).to(torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
-    print(model)
-    read_param_from_master("./muskDetectWeight/best.pt", model)
+    # model = YOLOV3(3).to(torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
+    # print(model)
+    # read_param_from_master("./muskDetectWeight/best.pt", model)
